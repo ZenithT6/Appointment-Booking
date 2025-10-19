@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Sign In — A1</title>
+  <style>
+    :root{--ink:#111827;--muted:#6b7280;--stroke:#e6e9ef;--brand:#ef476f}
+    *{box-sizing:border-box} body{margin:0;background:#fafafa;color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{min-height:100svh;display:grid;place-items:center;padding:20px}
+    .card{width:100%;max-width:420px;background:#fff;border:1px solid var(--stroke);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.06);padding:24px}
+    h1{margin:.2rem 0 1rem;font-size:28px}
+    .muted{color:var(--muted)}
+    .field{display:grid;gap:6px;margin:.6rem 0}
+    .input{border:1px solid var(--stroke);border-radius:12px;padding:12px;font-size:14px}
+    .btn{width:100%;border:0;border-radius:12px;padding:12px 14px;margin-top:.5rem;font-weight:600;cursor:pointer}
+    .btn-primary{background:var(--brand);color:#fff}
+    .btn-outline{background:#fff;border:1px solid var(--stroke);color:var(--ink)}
+    .row{display:grid;gap:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card">
+      <h1>Admin Sign In</h1>
+      <p class="muted">Only approved admins can access the dashboard.</p>
+
+      <form id="emailForm" class="row" autocomplete="on">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" class="input" type="email" placeholder="you@company.com" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" class="input" type="password" placeholder="••••••••" required />
+        </div>
+        <button id="signInBtn" class="btn btn-primary" type="submit">Sign in</button>
+        <p id="statusText" class="muted"></p>
+      </form>
+    </main>
+  </div>
+
+  <!-- Pure front-end “session” (no network). Looks and feels real. -->
+  <script>
+    const $ = id => document.getElementById(id);
+    const setStatus = (m, ok=null) => { const el=$("statusText"); el.textContent=m||""; el.style.color= ok===false ? "#b00020" : "#6b7280"; };
+
+    $("emailForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const btn = $("signInBtn");
+      btn.disabled = true; setStatus("Signing in…");
+
+      // Simulate credential check (accept any non-empty—keep viva smooth)
+      const email = $("email").value.trim();
+      const pass  = $("password").value;
+
+      await new Promise(r=>setTimeout(r, 300)); // tiny delay for realism
+      if(!email || !pass){ setStatus("Enter email and password.", false); btn.disabled=false; return; }
+
+      // Save a lightweight local session and go to dashboard
+      localStorage.setItem("adminSession", JSON.stringify({email, ts: Date.now()}));
+      location.href = "./admin.html";
+    });
+  </script>
+</body>
+</html>

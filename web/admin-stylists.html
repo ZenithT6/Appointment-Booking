@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Stylists</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .container{max-width:1100px;margin:0 auto;padding:16px}
+    .card{border:1px solid #e6e9ef;border-radius:16px;background:#fff;box-shadow:0 10px 25px rgba(16,18,20,.06);padding:16px}
+    .titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .grid{display:grid;gap:12px;grid-template-columns:1fr}
+    @media(min-width:760px){.grid{grid-template-columns:repeat(3,1fr)}}
+    .field{display:grid;gap:6px}
+    .input,.select{border:1px solid #e6e9ef;border-radius:10px;padding:10px 12px}
+    .btn{border:0;border-radius:12px;padding:12px 16px;background:#e85d7b;color:#fff;cursor:pointer}
+    .btn.secondary{background:#fff;color:#101214;border:1px solid #e6e9ef}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-top:1px solid #e6e9ef;text-align:left}
+    .muted{color:#5f6776}
+    a.link{color:#e85d7b;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card titlebar">
+      <h1 style="margin:0">Stylists</h1>
+      <div>
+        <a class="link" href="./admin.html">← Dashboard</a>
+        <button id="signOutBtn" class="btn secondary" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <section class="card" style="margin-top:12px">
+      <h2 style="margin:0 0 8px 0">Add stylist</h2>
+      <div class="grid">
+        <div class="field"><label for="stName">Full name</label><input id="stName" class="input" type="text" /></div>
+        <div class="field"><label for="stSpecialty">Specialty</label><input id="stSpecialty" class="input" type="text" /></div>
+        <div class="field"><label for="stPhoto">Photo URL</label><input id="stPhoto" class="input" type="url" /></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+        <label><input id="stActive" type="checkbox" checked /> Active</label>
+        <button id="addStylistBtn" class="btn" type="button">Add stylist</button>
+        <span id="stStatus" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:12px">
+      <h2 style="margin:0 0 8px 0">All stylists</h2>
+      <table class="table">
+        <thead>
+          <tr><th>Name</th><th>Specialty</th><th>Photo</th><th>Active</th><th></th></tr>
+        </thead>
+        <tbody id="stylistsBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script type="module" src="./firebase.js"></script>
+  <script type="module" src="./admin-stylists.js"></script>
+</body>
+</html>

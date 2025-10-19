@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login to book — A1 Hair & Beauty</title>
+  <link rel="stylesheet" href="./styles.css"/>
+
+  <style>
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { background:var(--card,#fff); border:1px solid var(--stroke,#e6e9ef);
+            border-radius:20px; padding:24px; box-shadow: var(--shadow-1,0 10px 25px rgba(16,18,20,.06)); }
+
+    /* Single-card layout */
+    .login-card { padding:32px 24px; }
+/* center title, keep Back on right */
+.login-head{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr; 
+  align-items:center;
+}
+.login-title{
+  grid-column: 2;            
+  justify-self:center;
+  text-align:center;
+  margin:0;
+}
+#backLink{
+  grid-column: 3;          
+  justify-self:end;
+}
+
+
+    .pill { border:1px solid var(--stroke); border-radius:999px; padding:6px 10px;
+            color:var(--muted); font-size:13px; text-decoration:none; }
+
+    .login-body { margin-top:24px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+
+    .icon-row { display:flex; gap:22px; align-items:center; justify-content:center; margin-top:8px; }
+    .circle-btn { width:72px; height:72px; border-radius:999px; border:1px solid var(--stroke,#e6e9ef);
+                  display:inline-flex; align-items:center; justify-content:center; background:#fff; cursor:pointer; }
+    .circle-btn:disabled { opacity:.7; cursor:default; }
+    .circle-btn svg { width:28px; height:28px; }
+
+    .divider { display:flex; align-items:center; gap:12px; width:100%; max-width:520px; color:var(--muted); }
+    .divider::before, .divider::after { content:""; height:1px; flex:1; background:var(--stroke,#e6e9ef); }
+
+    .link-underline { color:inherit; text-decoration:underline; }
+    .btn-accent { background:#ffc107; color:#111; border:none; border-radius:999px; padding:16px 22px; font-weight:600; width:100%; max-width:520px; }
+    .btn-accent:focus-visible { outline:3px solid rgba(255,193,7,.35); outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- ONE card with title + back + login content -->
+    <div class="card login-card">
+      <div class="login-head">
+        <h1 class="login-title ">Login to book online</h1>
+        <a id="backLink" class="pill" href="./time.html">← Back</a>
+      </div>
+
+      <div class="login-body">
+        <div class="icon-row" aria-label="Social login options">
+          <!-- Google -->
+          <button class="circle-btn" id="btnGoogle" title="Continue with Google" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.7 3.8-5.5 3.8a6.4 6.4 0 1 1 0-12.8 5.8 5.8 0 0 1 4.1 1.6l2.8-2.7A9.7 9.7 0 1 0 12 21.7c5.6 0 9.3-3.9 9.3-9.3 0-.6-.1-1.2-.2-1.8H12z"/>
+            </svg>
+          </button>
+          <!-- Facebook -->
+          <button class="circle-btn" id="btnFacebook" title="Continue with Facebook" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#1877F2" d="M22 12a10 10 0 1 0-11.6 9.9v-7h-2.4V12h2.4V9.8c0-2.4 1.4-3.7 3.5-3.7 1 0 2 .2 2 .2v2.2h-1.1c-1.1 0-1.4.7-1.4 1.3V12h2.5l-.4 2.9h-2.1v7A10 10 0 0 0 22 12"/>
+            </svg>
+          </button>
+          <!-- Email -->
+          <button class="circle-btn" id="btnEmail" title="Continue with Email" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M4 6h16a2 2 0 0 1 2 2v.3l-10 5.7L2 8.3V8a2 2 0 0 1 2-2Zm16 12H4a2 2 0 0 1-2-2V9.6l10 5.7 10-5.7V16a2 2 0 0 1-2 2Z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="divider">or</div>
+
+        <a href="#" id="createProfile" class="link-underline" aria-disabled="true">Create profile</a>
+
+        <button id="continueGuest" class="btn-accent">Continue as guest</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script type="module">
+    import { selections, buildQS } from './utils.js';
+
+    const sel = selections();
+
+    // Enforce that users can only reach here after picking a time
+    if (!sel.stylistId || !sel.slotId) {
+      const qs = buildQS({ serviceId: sel.serviceId, stylistId: sel.stylistId, date: sel.date });
+      location.replace(`./time.html?${qs}`);
+    }
+
+    // Back link -> Time with preserved params
+    const back = document.getElementById('backLink');
+    if (back) back.href = './time.html?' + buildQS({ serviceId: sel.serviceId, stylistId: sel.stylistId, date: sel.date });
+
+    // Continue as guest -> Details step (booking.html) with all params
+    document.getElementById('continueGuest')?.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const qs = buildQS({
+        serviceId: sel.serviceId,
+        stylistId: sel.stylistId,
+        slotId: sel.slotId,
+         date: sel.date
+      });
+      location.href = `./booking.html?${qs}`;
+    });
+  </script>
+  <script type="module" src="./utils.js"></script>
+</body>
+</html>

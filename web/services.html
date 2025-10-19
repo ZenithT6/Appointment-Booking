@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Our Services — A1 Hair & Beauty</title>
+  <meta name="description" content="Explore all A1 Hair & Beauty services. Clear pricing. Book in minutes." />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Header / Nav (same as homepage) -->
+  <header class="site-header">
+    <div class="container nav">
+      <a href="./index.html" class="logo">A1 Hair & Beauty</a>
+      <nav class="nav-links">
+        <a href="./index.html#services" class="btn btn-ghost" >Services</a>
+        <a href="./index.html#about">About</a>
+        <a href="./index.html#contact">Contact</a>
+        <a href="./admin.html" class="btn btn-ghost small">Admin</a>
+        <a href="./services.html" class="btn">Book Now</a>
+      </nav>
+      <button class="nav-burger" id="navBurger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <a href="./index.html#services">Services</a>
+    <a href="./index.html#about">About</a>
+    <a href="./index.html#contact">Contact</a>
+    <a href="./services.html">Book Now</a>
+    <button class="drawer-close" id="drawerClose">Close</button>
+  </aside>
+
+  <!-- Page Header -->
+  <section class="services-hero reveal">
+    <div class="container">
+      <div class="section-header">
+        <h2>Our Services</h2>
+        <div class="section-underline"></div>
+        <p class="muted">All the ways we’ll help you look and feel your best.</p>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="services-toolbar">
+        <div class="toolbar-left">
+          <input id="svcSearch" type="search" placeholder="Search services…" aria-label="Search services" />
+          <div id="svcCategories" class="chip-row" role="tablist" aria-label="Filter by category">
+            <!-- chips injected -->
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <label class="sort-label" for="svcSort">Sort</label>
+          <select id="svcSort" aria-label="Sort services">
+            <option value="popular">Popular</option>
+            <option value="priceAsc">Price: Low → High</option>
+            <option value="priceDesc">Price: High → Low</option>
+            <option value="nameAsc">A → Z</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grid -->
+  <section class="services-section reveal">
+    <div class="container">
+      <div id="allServicesGrid" class="services-grid services-icons"><!-- filled by services.js --></div>
+      <div id="svcEmpty" class="center small muted" style="display:none;">No matching services.</div>
+    </div>
+  </section>
+
+  <!-- Service Modal -->
+  <div class="modal" id="serviceModal" aria-hidden="true" role="dialog" aria-label="Service details">
+    <div class="modal-body svc-modal">
+      <button class="modal-close" id="svcClose" aria-label="Close">✕</button>
+      <div class="svc-modal-header">
+        <div class="svc-modal-icon" id="svcIcon"></div>
+        <div>
+          <h3 id="svcTitle">Service</h3>
+          <div class="svc-sub" id="svcMeta"></div>
+        </div>
+      </div>
+      <p id="svcDesc" class="svc-desc"></p>
+      <div class="svc-actions">
+        <a id="svcBook" href="./booking.html" class="btn">Book this service</a>
+      </div>
+    </div>
+    <div class="modal-backdrop" id="svcBackdrop"></div>
+  </div>
+
+
+  <!-- Shared site JS (nav, etc.) -->
+  <script type="module" src="./script.js"></script>
+  <!-- Page-specific JS -->
+  <script type="module" src="./services.js"></script>
+</body>
+</html>

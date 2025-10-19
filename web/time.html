@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Select a time — A1</title>
+<link rel="stylesheet" href="./styles.css"/>
+<style>
+  :root{
+    --ink:#0b1220; --muted:#6b7280; --stroke:#e6e9ef; --bg:#f7f8fb;
+    --brand:#111827; --brand2:#111827
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  .pill{border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;color:var(--muted);text-decoration:none}
+
+  .grid{display:grid;gap:16px}
+  @media(min-width:980px){.grid{grid-template-columns:1.1fr .9fr}}
+  .card{background:#fff;border:1px solid var(--stroke);border-radius:14px;padding:16px}
+
+  /* Calendar */
+  .calHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .calHeader h2{margin:0;font-size:18px}
+  .navBtn{border:1px solid var(--stroke);background:#fff;border-radius:10px;padding:8px;cursor:pointer}
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:6px}
+  .dow span{color:var(--muted);text-align:center;font-size:12px}
+  .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .day{padding:12px 0;border:1px solid var(--stroke);background:#fff;border-radius:12px;cursor:pointer;text-align:center}
+  .day.other{opacity:.45}
+  .day.has{border-color:#d7def0}
+  .day.sel{border-color:#111827;box-shadow:0 0 0 2px #111827 inset}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:999px;background:#0b1220;margin-left:6px;vertical-align:middle}
+  .muted{color:var(--muted)}
+
+  /* Times */
+  .times{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .chip{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--stroke);background:#fff;border-radius:12px;text-decoration:none;color:inherit}
+  .chip .right{display:flex;align-items:center;gap:8px}
+  .chip .price s{color:#9ca3af}
+  .chip .price b{font-weight:700}
+  .chip .deal{padding:2px 8px;border-radius:999px;border:1px solid #fecaca;background:#fff1f2;color:#991b1b;font-size:12px;white-space:nowrap}
+  .noteRow{margin-top:10px;display:flex;gap:12px;align-items:center}
+
+  /* Buttons (inline friendly so they don’t get overridden) */
+  .btn{border:1px solid var(--stroke);border-radius:12px;background:#fff;padding:10px 14px;cursor:pointer}
+  .btn-primary{background:#ef476f;border-color:#ef476f;color:#fff}
+
+  /* Waitlist modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:1000}
+  .sheet{width:min(440px,94vw);background:#fff;border-radius:14px;border:1px solid var(--stroke);box-shadow:0 28px 64px rgba(0,0,0,.25);padding:16px}
+  .input{border:1px solid var(--stroke);border-radius:10px;padding:10px;width:100%;font-size:14px}
+  .tag{display:inline-block;border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;color:#6b7280;font-size:12px}
+
+  /* Right summary card just inherits your existing styles.css layout */
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a id="backLink" class="pill" href="./team.html">‹ Back</a>
+      <div id="stepper"></div>
+    </div>
+
+    <div class="grid">
+      <main class="card">
+        <div class="calHeader">
+          <button id="prevMonth" class="navBtn" aria-label="Previous month">‹</button>
+          <h2 id="monthLabel">Select a date</h2>
+          <button id="nextMonth" class="navBtn" aria-label="Next month">›</button>
+        </div>
+        <div class="dow">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div id="cal" class="calGrid"></div>
+
+        <h3 id="slotTitle" style="margin:16px 0 8px">Times</h3>
+        <div id="times" class="times"></div>
+        <div id="timesEmpty" class="muted" style="display:none">No times for this date.</div>
+
+        <div class="noteRow">
+          <!-- ensure text is visible regardless of global CSS -->
+          <button id="wlOpen" class="btn" style="color:#0b1220;font-weight:600">Join waitlist</button>
+          <span class="tag">We’ll notify you if a slot opens</span>
+        </div>
+      </main>
+
+      <aside class="card">
+        <h3 style="margin:0 0 8px">Summary</h3>
+        <div id="summary"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Waitlist Modal -->
+  <div id="wlModal" class="modal">
+    <div class="sheet">
+      <h3 style="margin:0 0 8px">Join waitlist</h3>
+      <input id="wlName" class="input" placeholder="Your name" style="margin:6px 0">
+      <input id="wlEmail" class="input" type="email" placeholder="Email" style="margin:6px 0">
+      <textarea id="wlNotes" class="input" placeholder="Preferred time window (e.g., today 3–6pm)" style="height:84px"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <button id="wlSubmit" class="btn btn-primary">Join</button>
+        <button id="wlClose" class="btn">Close</button>
+        <span id="wlMsg" class="muted"></span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./time.js"></script>
+</body>
+</html>

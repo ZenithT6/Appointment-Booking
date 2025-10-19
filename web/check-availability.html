@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Check Availability — A1 Hair & Beauty</title>
+  <link rel="stylesheet" href="./styles.css?v=5"/>
+  <style>
+    /* Page sprinkles that reuse your existing design system */
+    .layout{display:grid;gap:16px}
+    @media(min-width:900px){.layout{grid-template-columns:320px 1fr}}
+    .filters{position:sticky;top:64px;z-index:10}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:6px 12px;cursor:pointer}
+    .chip.active{outline:2px solid rgba(0,0,0,.18)}
+    .slot-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:6px 10px;margin:6px 6px 0 0}
+    .slot-chip .badge{font-size:12px}
+    .skeleton{height:32px;border-radius:10px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);background-size:200% 100%;animation:shimmer 1.2s infinite}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a href="./index.html" class="logo">A1 Hair & Beauty</a>
+    <nav class="desktop-nav">
+      <a href="./services.html">Services</a>
+      <a class="active" href="./check-availability.html">Availability</a>
+      <a href="./booking.html">Book</a>
+      <a href="./admin.html">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="section">
+  <div class="container layout">
+    <!-- Filters -->
+    <aside class="filters">
+      <div class="card">
+        <h2 style="margin-top:0">Find a time</h2>
+        <label>Stylist</label>
+        <select id="stySelect" class="w-full">
+          <option value="any">Any stylist</option>
+        </select>
+
+        <div style="margin-top:12px">
+          <label>Start date</label>
+          <input id="startDate" type="date" class="w-full"/>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="chips" id="rangeChips">
+            <div class="chip active" data-days="7">Next 7 days</div>
+            <div class="chip" data-days="14">Next 14 days</div>
+            <div class="chip" data-days="30">Next 30 days</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:12px;gap:8px">
+          <button id="refreshBtn" class="btn">Check availability</button>
+          <a class="link" href="./booking.html">Go to booking →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">How this works</h3>
+        <p class="small muted">Times shown come from the **Admin → Slots** page. Toggle a slot <i>active/open</i> there to show it here.</p>
+      </div>
+    </aside>
+
+    <!-- Results -->
+    <section id="results" aria-live="polite">
+      <div class="card"><div class="skeleton" style="width:60%"></div></div>
+      <div class="card"><div class="skeleton" style="width:80%"></div></div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-row">
+    <div>© 2025 A1 Hair & Beauty</div>
+    <div class="footer-links"><a href="#">Privacy</a> · <a href="#">Terms</a></div>
+  </div>
+</footer>
+
+<script type="module" src="./availability.js"></script>
+</body>
+</html>

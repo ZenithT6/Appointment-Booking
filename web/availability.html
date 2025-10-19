@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+  <title>Check Availability — A1 Hair & Beauty</title>
+
+  <!-- Global styles (reuse your existing site stylesheet) -->
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- Optional: page-local tweaks -->
+  <style>
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 16px 0 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar .group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .week-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin: 8px 0 16px;
+    }
+    .week-day-btn {
+      border: 1px solid var(--stroke, #e6e9ef);
+      background: var(--card, #fff);
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    .week-day-btn[aria-current="date"] {
+      outline: 2px solid var(--brand, #e85d7b);
+      outline-offset: 2px;
+      font-weight: 600;
+    }
+    .team-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .team-card {
+      display: grid;
+      grid-template-rows: 120px auto;
+      border: 1px solid var(--stroke, #e6e9ef);
+      background: var(--card, #fff);
+      border-radius: var(--radius, 16px);
+      box-shadow: var(--shadow-1, 0 10px 25px rgba(16,18,20,.06));
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .08s ease;
+    }
+    .team-card:hover { transform: translateY(-2px); }
+    .team-photo {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      background: #f1f3f7;
+    }
+    .team-meta {
+      padding: 10px 12px;
+    }
+    .team-name { font-weight: 700; }
+    .team-role { color: var(--muted, #5f6776); font-size: 13px; }
+
+    .day-section {
+      border: 1px solid var(--stroke, #e6e9ef);
+      background: var(--card, #fff);
+      border-radius: var(--radius, 16px);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .day-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .slot-list {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .slot-chip {
+      border: 1px solid var(--stroke, #e6e9ef);
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 14px;
+      line-height: 1;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .slot-chip[aria-disabled="true"] {
+      opacity: .55;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+    .book-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background: var(--brand, #e85d7b);
+      color: #fff;
+    }
+    .empty {
+      color: var(--muted, #5f6776);
+      font-size: 14px;
+      padding: 8px 0;
+    }
+    .card {
+      border: 1px solid var(--stroke, #e6e9ef);
+      background: var(--card, #fff);
+      border-radius: var(--radius, 16px);
+      box-shadow: var(--shadow-1, 0 10px 25px rgba(16,18,20,.06));
+      padding: 16px;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .back-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .select {
+      border: 1px solid var(--stroke, #e6e9ef);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fff;
+      min-width: 220px;
+    }
+    .pill {
+      border: 1px solid var(--stroke, #e6e9ef);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--muted, #5f6776);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Top row: Title + back to Home -->
+    <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <h1 style="margin:0;">Availability</h1>
+      <a class="back-link" href="./index.html" aria-label="Back to Home">
+        ← Back to Home
+      </a>
+    </div>
+
+    <!-- Team strip (same vibe as homepage team members) -->
+    <div class="card" style="margin-top:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
+        <h2 style="margin:0;">Our Team</h2>
+        <span class="pill" id="selectedStylistPill" hidden>Selected: <strong id="selectedStylistName"></strong></span>
+      </div>
+      <div id="teamStrip" class="team-strip" aria-label="Team members"></div>
+    </div>
+
+    <!-- Filters and week navigation -->
+    <div class="card" style="margin-top:12px;">
+      <div class="toolbar">
+        <div class="group">
+          <label for="stySelect" class="pill">Stylist</label>
+          <select id="stySelect" class="select" aria-label="Choose stylist">
+            <option value="">Any stylist</option>
+            <!-- populated by JS -->
+          </select>
+        </div>
+
+        <div class="group">
+          <button id="prevWeek" class="pill" type="button" aria-label="Previous week">⟨ Prev</button>
+          <strong id="weekLabel" style="min-width: 220px; text-align:center;"></strong>
+          <button id="nextWeek" class="pill" type="button" aria-label="Next week">Next ⟩</button>
+        </div>
+
+        <div class="group">
+          <button id="todayBtn" class="pill" type="button" aria-label="Jump to current week">This week</button>
+        </div>
+      </div>
+
+      <div id="weekStrip" class="week-strip" role="listbox" aria-label="Choose a day in the selected week">
+        <!-- 7 buttons populated by JS -->
+      </div>
+    </div>
+
+    <!-- Results: per-day sections with slots + Book Now -->
+    <div id="results" aria-live="polite" style="margin-top:12px;">
+      <!-- populated by JS -->
+    </div>
+
+    <!-- Small note -->
+    <p class="pill" style="margin-top:12px;">
+      Tip: Tap a stylist card above to filter their week directly.
+    </p>
+  </div>
+
+  <!-- Your Firebase + app bootstrap should already be loaded globally in the project.
+       If your project loads firebase scripts per page, import them here *before* availability.js.
+       Example (commented since projects differ):
+       <script src="/__/firebase/10.12.2/firebase-app-compat.js"></script>
+       <script src="/__/firebase/10.12.2/firebase-firestore-compat.js"></script>
+       <script src="./firebase-init.js"></script>
+  -->
+
+
+<script type="module" src="./firebase.js"></script>
+<script type="module" src="./availability.js"></script>
+
+
+</body>
+</html>

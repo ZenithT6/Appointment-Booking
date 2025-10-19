@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Daily Schedule</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a href="./index.html" class="logo">A1 Hair & Beauty</a>
+      <nav class="nav-links">
+        <a href="./services.html">Services</a>
+        <a href="./availability.html">Availability</a>
+        <a href="./admin.html" class="btn btn-ghost small">Admin</a>
+        <a href="./booking.html" class="btn">Book Now</a>
+      </nav>
+      <button class="nav-burger" id="navBurger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <a href="./services.html">Services</a>
+    <a href="./availability.html">Availability</a>
+    <a href="./admin.html">Admin</a>
+    <a href="./booking.html">Book Now</a>
+    <button class="drawer-close" id="drawerClose" aria-label="Close menu">Close</button>
+  </aside>
+
+ <div class="container" style="padding:24px 0"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap">
+        <div>
+          <h1 style="margin:0">Daily Schedule</h1>
+          <p class="small" style="margin:6px 0 0">Pick a date, filter by stylist/status, export CSV.</p>
+        </div>
+        <div class="row" style="gap:10px; min-width:320px">
+          <div>
+            <label for="datePicker">Date</label>
+            <input type="date" id="datePicker" />
+          </div>
+          <div>
+            <label for="styFilter">Stylist</label>
+            <select id="styFilter">
+              <option value="any">Any</option>
+            </select>
+          </div>
+          <div>
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+              <option value="any">Any</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end">
+            <button id="exportBtn">Export CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <table class="table" style="margin-top:16px">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>Stylist</th>
+            <th>Status</th>
+            <th>Ref</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+
+      <div id="emptyState" class="small" style="display:none; margin-top:10px">No bookings for this selection.</div>
+    </div>
+  </div>
+  <script type="module" src="./admin-schedule.js"></script>
+
+</body>
+</html>

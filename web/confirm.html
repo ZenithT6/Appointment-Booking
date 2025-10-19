@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Booking confirmed — A1</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <style>
+    /* simple, clean (same feel as your earlier pages) */
+    :root{--stroke:#e6e9ef;--muted:#6b7280;--ink:#0b1220}
+    *{box-sizing:border-box} body{margin:0;background:#fff;color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:900px;margin:0 auto;padding:16px}
+    .banner{border:1px solid #d1fae5;background:#ecfdf5;border-radius:12px;padding:14px;margin-bottom:12px}
+    .muted{color:var(--muted)}
+    .card{background:#fff;border:1px solid var(--stroke);border-radius:12px;padding:16px}
+    .rows{display:grid;gap:8px}
+    .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--stroke)}
+    .row:last-child{border-bottom:0}
+    .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+    .btn{border:1px solid var(--stroke);border-radius:10px;background:#fff;padding:10px 14px;cursor:pointer;text-decoration:none;color:inherit}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="banner">
+      <h2 id="statusTitle" style="margin:.2rem 0">Confirmed</h2>
+      <div id="statusSubtitle" class="muted">Your appointment is booked.</div>
+    </div>
+
+    <div class="card">
+      <div class="rows">
+        <div class="row"><div class="muted">Booking ID</div><div id="bid"></div></div>
+        <div class="row"><div class="muted">Service</div><div id="svc"></div></div>
+        <div class="row"><div class="muted">Stylist</div><div id="sty"></div></div>
+        <div class="row"><div class="muted">Date</div><div id="date"></div></div>
+        <div class="row"><div class="muted">Time</div><div id="time"></div></div>
+        <div class="row"><div class="muted">Duration</div><div id="duration"></div></div>
+        <div class="row"><div class="muted">Price</div><div id="price"></div></div>
+        <div class="row"><div class="muted">Customer</div><div id="cust"></div></div>
+        <div class="row"><div class="muted">Status</div><div id="status"></div></div>
+      </div>
+
+      <div class="actions">
+        <button id="icsBtn" class="btn">Add to calendar (.ics)</button>
+        <button id="printBtn" class="btn">Print</button>
+        <a class="btn" href="./index.html">Done</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { firebaseConfig } from './firebase.js';
+    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const qp = new URLSearchParams(location.search);
+    const bookingId = qp.get('bookingId');
+
+    const $ = (id)=> document.getElementById(id);
+    const setTxt=(id,v)=>{ const e=$(id); if(e) e.textContent = String(v ?? ''); };
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function icsDateTime(date, time){
+      const [y,m,d] = (date||'').split('-').map(Number);
+      const [hh,mm] = (time||'').split(':').map(Number);
+      const dt = new Date(y,(m||1)-1,d||1,hh||0,mm||0);
+      return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+    }
+    function downloadICS(b, svcName='Appointment'){
+      const dtstart = icsDateTime(b.date, b.start_time);
+      const dtend   = icsDateTime(b.date, b.end_time||b.start_time);
+      const lines = [
+        'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//A1 Booking//EN','BEGIN:VEVENT',
+        `UID:a1-${Date.now()}@a1-booking`,`DTSTAMP:${dtstart}`,`DTSTART:${dtstart}`,`DTEND:${dtend}`,
+        `SUMMARY:${svcName}`,`DESCRIPTION:Service ${b.service_id||''} with ${b.stylist_id||''}`,'END:VEVENT','END:VCALENDAR'
+      ].join('\r\n');
+      const url = URL.createObjectURL(new Blob([lines], { type: 'text/calendar' }));
+      const a = document.createElement('a'); a.href=url; a.download=`booking-${b.date}-${b.start_time}.ics`; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function fetchOptional(col, id){
+      try{
+        if(!id) return {};
+        const s = await getDoc(doc(db,col,id));
+        return s.exists()? (s.data()||{}) : {};
+      }catch{ return {}; }
+    }
+    async function loadBooking(){
+      if (!bookingId) throw new Error('Missing bookingId.');
+      if (bookingId.startsWith('local-')){
+        const raw = localStorage.getItem('booking:'+bookingId);
+        if (!raw) throw new Error('Local booking not found.');
+        const b = JSON.parse(raw);
+        return { id: bookingId, ...b };
+      }
+      const snap = await getDoc(doc(db,'bookings', bookingId));
+      if (!snap.exists()) throw new Error('Booking not found.');
+      return { id: bookingId, ...snap.data() };
+    }
+
+    function humanTime(start, end){ return [start||'', end ? ('– '+end) : ''].filter(Boolean).join(' '); }
+
+    (async ()=>{
+      try{
+        const b = await loadBooking();
+        const svc = await fetchOptional('services', b.service_id);
+        const sty = await fetchOptional('stylists', b.stylist_id);
+
+        const svcName  = svc.name || 'Selected service';
+        const duration = Number(svc.duration || 30);
+        const final = (b.price_final != null)
+          ? Number(b.price_final)
+          : Number(svc.price_aud ?? svc.price);
+        const priceText  = Number.isFinite(final) ? ('$' + final) : '—';
+
+        setTxt('statusTitle','Confirmed');
+        setTxt('statusSubtitle','Your appointment is booked.');
+        setTxt('bid', b.id || '');
+        setTxt('svc', svcName);
+        setTxt('sty', sty.full_name || sty.name || '—');
+        setTxt('date', b.date || '');
+        setTxt('time', humanTime(b.start_time, b.end_time));
+        setTxt('duration', duration ? `${duration} min` : '—');
+        setTxt('price', priceText);
+        setTxt('cust', b.customer_name ? `${b.customer_name} (${b.customer_email})` : '');
+        setTxt('status', b.status || 'confirmed');
+
+        $('icsBtn')?.addEventListener('click', ()=> downloadICS(b, svcName));
+        $('printBtn')?.addEventListener('click', ()=> window.print());
+      }catch(err){
+        console.error(err);
+        setTxt('statusTitle','Something went wrong');
+        setTxt('statusSubtitle', err?.message || '');
+      }
+    })();
+  </script>
+</body>
+</html>

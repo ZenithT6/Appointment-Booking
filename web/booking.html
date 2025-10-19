@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Confirm your booking — A1</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <style>
+    /* keep minimal styling so it blends with your original UI */
+    :root{--ink:#111827;--muted:#6b7280;--stroke:#e6e9ef;--brand:#ef476f}
+    *{box-sizing:border-box}
+    body{margin:0;background:#fff;color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .titlebar{display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px}
+    .pill{border:1px solid var(--stroke);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:13px;text-decoration:none}
+    .grid{display:grid;gap:16px}
+    @media(min-width:980px){.grid{grid-template-columns:1.25fr .75fr}}
+    .card{background:#fff;border:1px solid var(--stroke);border-radius:12px;padding:18px}
+    .row{display:grid;gap:12px}
+    .field{display:grid;gap:6px}
+    .input{border:1px solid var(--stroke);border-radius:10px;padding:12px;font-size:14px}
+    .invalid{border-color:#ef4444 !important; box-shadow:0 0 0 2px rgba(239,68,68,.12)}
+    .hint{font-size:12px;color:var(--muted)}
+    .error{font-size:12px;color:#b00020}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+    .btn{border:1px solid var(--stroke);border-radius:10px;background:#fff;padding:10px 14px;cursor:pointer}
+    .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff}
+    /* summary (matches earlier simple list look) */
+    .summary-list{list-style:none;margin:0;padding:0}
+    .summary-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--stroke)}
+    .summary-item:last-child{border-bottom:0}
+    .summary-item span:first-child{color:var(--muted)}
+    .summary-item span:last-child{font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="titlebar">
+      <h1 style="margin:.2rem 0">Confirm your booking</h1>
+      <a id="backLink" class="pill" href="./time.html">‹ Back</a>
+    </div>
+
+    <div class="grid">
+      <main class="row">
+        <div class="card">
+          <form id="bookingForm" class="row" novalidate>
+            <div class="field">
+              <label for="name">Full name</label>
+              <input id="name" class="input" placeholder="Your name" autocomplete="name" required />
+              <div id="errName" class="error" style="display:none"></div>
+            </div>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <!-- keep native email validation like before -->
+              <input id="email" class="input" type="email" inputmode="email"
+                     placeholder="you@example.com" autocomplete="email" required />
+              <div class="hint">We'll send your confirmation to this email.</div>
+              <div id="errEmail" class="error" style="display:none"></div>
+            </div>
+
+            <div class="field">
+              <label for="phone">Phone (optional)</label>
+              <!-- same simple pattern as before: E.164-ish, 8–15 digits -->
+              <input id="phone" class="input" type="tel" inputmode="tel"
+                     placeholder="+61 4XX XXX XXX"
+                     pattern="^\\+?[0-9\\s-]{8,20}$" autocomplete="tel"/>
+              <div class="hint">Format: digits, spaces or dashes (e.g. +61 412 345 678).</div>
+              <div id="errPhone" class="error" style="display:none"></div>
+            </div>
+
+            <div class="field">
+              <label for="notes">Notes (optional)</label>
+              <textarea id="notes" class="input" rows="3" placeholder="Anything we should know?"></textarea>
+            </div>
+
+            <div class="actions">
+              <button id="submitBooking" class="btn btn-primary" type="submit">Confirm booking</button>
+              <a id="cancelBtn" class="btn" href="./time.html">Cancel</a>
+              <span id="statusText" class="hint"></span>
+            </div>
+          </form>
+        </div>
+      </main>
+
+      <aside class="row">
+        <div class="card">
+          <h3 style="margin:0 0 8px;">Summary</h3>
+          <ul class="summary-list">
+            <li class="summary-item"><span>Service</span><span id="sumService">—</span></li>
+            <li class="summary-item"><span>Stylist</span><span id="sumStylist">—</span></li>
+            <li class="summary-item"><span>Date</span><span id="sumDate">—</span></li>
+            <li class="summary-item"><span>Time</span><span id="sumTime">—</span></li>
+            <li class="summary-item"><span>Duration</span><span id="sumDuration">—</span></li>
+            <li class="summary-item"><span>Price</span><span id="sumPrice">—</span></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script type="module">
+    import { selections, buildQS } from './utils.js';
+    import { dealFor } from './utils-deals.js';
+    import { firebaseConfig } from './firebase.js';
+    import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+    import { getFirestore, doc, getDoc, setDoc, runTransaction, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const $ = (id)=> document.getElementById(id);
+    const setTxt=(id,v)=>{ const el=$(id); if(el) el.textContent=String(v ?? ''); };
+    const setStatus=(m,ok=null)=>{ const el=$('statusText'); if(!el) return; el.textContent=m||''; el.style.color = ok===false ? '#b00020' : '#6b7280'; };
+
+    const sel = selections();
+    const backQs = buildQS({ serviceId: sel.serviceId, stylistId: sel.stylistId, date: sel.date });
+    $('backLink').href = './time.html?' + backQs;
+    $('cancelBtn').href = './time.html?' + backQs;
+
+    /* ---------- SAME VALIDATION STYLE AS BEFORE (native + light JS) ---------- */
+    function showErr(el, msgId, msg){
+      if(!el) return;
+      if(msg){ el.classList.add('invalid'); const box=$(msgId); if(box){ box.style.display='block'; box.textContent=msg; } }
+      else { el.classList.remove('invalid'); const box=$(msgId); if(box){ box.style.display='none'; box.textContent=''; } }
+    }
+    function validate(){
+      const name = $('name');
+      const email= $('email');
+      const phone= $('phone');
+
+      let ok = true;
+
+      if(!name.value.trim()){
+        showErr(name,'errName','Please enter your name.');
+        ok=false;
+      } else showErr(name,'errName','');
+
+      if(!email.value.trim() || !email.checkValidity()){
+        showErr(email,'errEmail','Enter a valid email address.');
+        ok=false;
+      } else showErr(email,'errEmail','');
+
+      // phone optional, but if present must match pattern
+      if(phone.value.trim() && !phone.checkValidity()){
+        showErr(phone,'errPhone','Phone can include digits, spaces or dashes (8–20 chars).');
+        ok=false;
+      } else showErr(phone,'errPhone','');
+
+      return ok;
+    }
+
+    /* ---------- helpers ---------- */
+    function isVirtualSlot(id){ return typeof id === 'string' && id.startsWith('virtual|'); }
+    function parseVirtualSlotId(id){ const [, date, start_time, stylist_id, service_id] = (id||'').split('|'); return { date, start_time, stylist_id: (stylist_id==='any'?'':stylist_id), service_id: service_id||'', capacity:4, remaining:4, isOpen:true, isVirtual:true }; }
+    function addMinutesToTime(hhmm, mins){ const [h,m]=(hhmm||'').split(':').map(n=>parseInt(n,10)); if(Number.isNaN(h)||Number.isNaN(m)) return hhmm||''; const d=new Date(0,0,0,h,m,0); d.setMinutes(d.getMinutes() + (parseInt(mins,10)||0)); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+    async function fetchOptional(col, id){ try{ if(!id) return {}; const s=await getDoc(doc(db,col,id)); return s.exists()? (s.data()||{}) : {}; }catch{ return {}; } }
+
+    async function populate(){
+      const svc  = await fetchOptional('services', sel.serviceId);
+      const sty  = await fetchOptional('stylists', sel.stylistId);
+      const slot = isVirtualSlot(sel.slotId) ? parseVirtualSlotId(sel.slotId) : await fetchOptional('slots', sel.slotId);
+
+      const svcName = svc.name || 'Selected service';
+      const duration = Number(svc.duration || 30);
+      const date  = sel.date || slot.date || '';
+      const start = slot.start_time || '';
+      const end   = start ? addMinutesToTime(start, duration) : '';
+      const deal  = dealFor(slot, svc);
+      const basePrice = Number(svc.price_aud ?? svc.price);
+      const priceText = Number.isFinite(basePrice)
+        ? (deal.isDeal ? `$${basePrice} → $${deal.priceFinal}` : `$${basePrice}`)
+        : '—';
+
+      setTxt('sumService', svcName);
+      setTxt('sumStylist', sty.full_name || sty.name || '—');
+      setTxt('sumDate', date || '—');
+      setTxt('sumTime', start ? (start + (end ? ' – ' + end : '')) : '—');
+      setTxt('sumDuration', duration ? (duration + ' min') : '—');
+      setTxt('sumPrice', priceText);
+    }
+
+    async function createBookingWithRealSlot(slotId, payload){
+      const slotRef    = doc(db,'slots',slotId);
+      const bookingRef = doc(collection(db,'bookings'));
+      await runTransaction(db, async (tx)=>{
+        const snap = await tx.get(slotRef);
+        if(!snap.exists()) throw new Error('Selected slot no longer exists.');
+        const s = snap.data();
+        const remaining = Number(s.remaining ?? s.capacity ?? 0);
+        if (s.isOpen === false) throw new Error('This slot is closed.');
+        if (!Number.isFinite(remaining)) throw new Error('Invalid slot capacity.');
+        if (remaining <= 0) throw new Error('This slot has just sold out.');
+        tx.update(slotRef, { remaining: remaining - 1 });
+        tx.set(bookingRef, { ...payload, slot_id: slotId, created_at: serverTimestamp(), status:'confirmed' });
+      });
+      return bookingRef.id;
+    }
+    async function createBookingVirtual(slotPayload, payload){
+      try{
+        const bookingRef = doc(collection(db,'bookings'));
+        await setDoc(bookingRef, { ...payload, slot_id: null, created_at: serverTimestamp(), status:'confirmed', is_demo:true });
+        return bookingRef.id;
+      }catch{
+        const id = 'local-' + Date.now();
+        localStorage.setItem('booking:'+id, JSON.stringify({ ...payload, slot_id: sel.slotId, status:'confirmed', is_demo:true }));
+        return id;
+      }
+    }
+
+    async function onConfirm(e){
+      e?.preventDefault();
+      if(!validate()){ setStatus('Please fix the highlighted fields.', false); return; }
+
+      const name  = $('name')?.value?.trim();
+      const email = $('email')?.value?.trim();
+      const phone = $('phone')?.value?.trim() || '';
+      const notes = $('notes')?.value?.trim() || '';
+
+      setStatus('Confirming your booking…');
+
+      const svc  = await fetchOptional('services', sel.serviceId);
+      const duration = Number(svc.duration || 30);
+      const v = isVirtualSlot(sel.slotId) ? parseVirtualSlotId(sel.slotId) : await fetchOptional('slots', sel.slotId);
+      const date  = sel.date || v.date || '';
+      const start = v.start_time || '';
+      const end   = start ? addMinutesToTime(start, duration) : '';
+      const deal  = dealFor(v, svc);
+      const base  = Number(svc.price_aud ?? svc.price);
+
+      const payload = {
+        customer_name: name, customer_email: email, customer_phone: phone, notes,
+        service_id: sel.serviceId, stylist_id: sel.stylistId,
+        date, start_time: start, end_time: end,
+        price_list: Number.isFinite(base) ? base : undefined,
+        price_final: Number.isFinite(deal.priceFinal) ? deal.priceFinal :
+                     (Number.isFinite(base) ? base : undefined),
+        deal_applied: !!deal.isDeal,
+        deal_pct: deal.isDeal ? deal.pct : 0
+      };
+
+      try{
+        const bookingId = isVirtualSlot(sel.slotId)
+          ? await createBookingVirtual(v, payload)
+          : await createBookingWithRealSlot(sel.slotId, payload);
+        setStatus('Booking confirmed!', true);
+        location.href = './confirm.html?bookingId=' + encodeURIComponent(bookingId);
+      }catch(err){
+        console.error(err);
+        setStatus(err?.message || 'Could not confirm booking. Please try again.', false);
+      }
+    }
+
+    document.getElementById('bookingForm')?.addEventListener('submit', onConfirm);
+    document.getElementById('submitBooking')?.addEventListener('click', onConfirm);
+    populate().catch(console.warn);
+  </script>
+</body>
+</html>

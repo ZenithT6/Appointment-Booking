@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Slots & Availability</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { border: 1px solid var(--stroke,#e6e9ef); background:#fff; border-radius:16px;
+            box-shadow: 0 10px 25px rgba(16,18,20,.06); padding:16px; }
+    .titlebar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .grid-2 { display:grid; gap:16px; grid-template-columns:1fr; }
+    .grid-3 { display:grid; gap:12px; grid-template-columns:1fr; }
+    @media (min-width:860px){ .grid-2{ grid-template-columns:1fr 1fr; } }
+    @media (min-width:640px){ .grid-3{ grid-template-columns:repeat(3,1fr); } }
+    .row { display:grid; gap:16px; }
+    .link { color: var(--brand,#e85d7b); text-decoration:none; }
+    .field { display:grid; gap:6px; }
+    .field label { font-size:14px; color:#5f6776; }
+    .input,.select { border:1px solid #e6e9ef; border-radius:10px; padding:10px 12px; font-size:15px; }
+    .checkbox-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .day-pill { border:1px solid #e6e9ef; border-radius:999px; padding:6px 10px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { border:0; border-radius:12px; padding:12px 16px; background:#e85d7b; color:#fff; cursor:pointer; font-size:15px; }
+    .btn.secondary { background:#fff; color:#101214; border:1px solid #e6e9ef; }
+    .pill { border:1px solid #e6e9ef; border-radius:999px; padding:6px 10px; font-size:13px; color:#5f6776; }
+    .table { width:100%; border-collapse:collapse; }
+    .table th,.table td { padding:10px; border-top:1px solid #e6e9ef; text-align:left; }
+    .muted { color:#5f6776; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="card titlebar">
+      <h1 style="margin:0;">Admin — Manage Availability</h1>
+      <div style="display:flex; gap:8px;">
+        <a class="link" href="./index.html" style="align-self:center;">← Back</a>
+        <button id="signOutBtn" class="btn secondary" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <!-- Generate Week -->
+      <section class="card">
+        <h2 style="margin:0 0 8px 0;">Generate Week of Slots</h2>
+        <p class="muted" style="margin:0 0 12px 0;">Create slots for a stylist across a whole week with a time template.</p>
+
+        <div class="grid-3">
+          <div class="field">
+            <label for="gwStylist">Stylist *</label>
+            <select id="gwStylist" class="select" required>
+              <option value="">Choose stylist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="gwService">Service *</label>
+            <select id="gwService" class="select" required>
+              <option value="">Choose service</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="gwWeekStart">Week start (Monday) *</label>
+            <input id="gwWeekStart" class="input" type="date" required />
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div class="field">
+            <label for="gwStartTime">Day start time *</label>
+            <input id="gwStartTime" class="input" type="time" value="09:00" required />
+          </div>
+          <div class="field">
+            <label for="gwEndTime">Day end time *</label>
+            <input id="gwEndTime" class="input" type="time" value="17:00" required />
+          </div>
+          <div class="field">
+            <label for="gwInterval">Interval (minutes) *</label>
+            <input id="gwInterval" class="input" type="number" min="10" step="5" value="60" required />
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div class="field">
+            <label for="gwCapacity">Capacity per slot *</label>
+            <input id="gwCapacity" class="input" type="number" min="1" step="1" value="1" required />
+          </div>
+          <div class="field">
+            <label for="gwActive">Mark slots as</label>
+            <select id="gwActive" class="select">
+              <option value="open">Open (active + bookable)</option>
+              <option value="draft">Draft (active=false)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="checkbox-row">
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="1" checked /> Mon</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="2" checked /> Tue</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="3" checked /> Wed</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="4" checked /> Thu</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="5" checked /> Fri</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="6" /> Sat</label>
+              <label class="day-pill"><input type="checkbox" class="gwDay" value="0" /> Sun</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:14px;">
+          <button id="gwGenerateBtn" class="btn" type="button">Generate week</button>
+          <button id="gwPreviewBtn" class="btn secondary" type="button">Preview</button>
+          <span id="gwStatus" class="pill" aria-live="polite"></span>
+        </div>
+
+        <!-- Preview -->
+        <div id="gwPreview" class="card" style="margin-top:12px; display:none;">
+          <h3 style="margin-top:0;">Preview slots to be created</h3>
+          <table class="table">
+            <thead><tr><th>Date</th><th>Start</th><th>End</th><th>Capacity</th></tr></thead>
+            <tbody id="gwPreviewBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Add Single Slot -->
+      <section class="card">
+        <h2 style="margin:0 0 8px 0;">Add Single Slot</h2>
+        <p class="muted" style="margin:0 0 12px 0;">Create one slot manually.</p>
+
+        <div class="grid-3">
+          <div class="field">
+            <label for="qsStylist">Stylist *</label>
+            <select id="qsStylist" class="select" required>
+              <option value="">Choose stylist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qsService">Service *</label>
+            <select id="qsService" class="select" required>
+              <option value="">Choose service</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qsDate">Date *</label>
+            <input id="qsDate" class="input" type="date" required />
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:12px;">
+          <div class="field">
+            <label for="qsStart">Start time *</label>
+            <input id="qsStart" class="input" type="time" required />
+          </div>
+          <div class="field">
+            <label for="qsEnd">End time *</label>
+            <input id="qsEnd" class="input" type="time" required />
+          </div>
+          <div class="field">
+            <label for="qsCapacity">Capacity *</label>
+            <input id="qsCapacity" class="input" type="number" min="1" step="1" value="1" required />
+          </div>
+        </div>
+
+        <div class="checkbox-row" style="margin-top:12px;">
+          <label><input id="qsOpen" type="checkbox" checked /> Open (bookable)</label>
+        </div>
+
+        <div class="actions" style="margin-top:14px;">
+          <button id="qsCreateBtn" class="btn" type="button">Create slot</button>
+          <span id="qsStatus" class="pill" aria-live="polite"></span>
+        </div>
+      </section>
+    </div>
+
+    <!-- Recent Slots (single section, with CSV + Delete column) -->
+    <section class="card" style="margin-top:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2 style="margin:0 0 8px 0;">Recent Slots</h2>
+        <button id="csvBtn" class="btn secondary" type="button">Download CSV</button>
+      </div>
+      <p class="muted" style="margin:0 0 12px 0;">Latest 50 slots (most recent by date/time).</p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Time</th><th>Stylist</th><th>Service</th>
+            <th>Open</th><th>Remaining / Capacity</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="recentSlotsBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script type="module" src="./firebase.js"></script>
+  <script type="module" src="./admin-slots.js"></script>
+</body>
+</html>

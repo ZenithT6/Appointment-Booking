@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin — A1 Appointment Booking</title>
+<style>
+  :root{
+    --ink:#0b1220;--muted:#6b7280;--stroke:#e6e9ef;--bg:#f7f8fb;
+    --brand:#3b82f6;--brand2:#2563eb;--ok:#10b981;--warn:#ef476f
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  a{color:inherit;text-decoration:none}
+
+  .header{background:linear-gradient(135deg,#eef2ff,#e0f2fe);border-bottom:1px solid var(--stroke)}
+  .header .inner{max-width:1240px;margin:0 auto;padding:18px;display:flex;justify-content:space-between;align-items:center}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb)}
+  .brand h1{font-size:20px;margin:0}
+
+  .status{display:inline-flex;gap:8px;align-items:center;color:#065f46;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.22);
+    padding:6px 10px;border-radius:999px;font-weight:600}
+  .status.off{background:#fff1f2;color:#991b1b;border-color:#fecdd3}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:16px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin:8px 0 14px}
+  .muted{color:var(--muted)}
+  .btn{border:1px solid var(--stroke);border-radius:12px;background:#fff;padding:10px 14px;cursor:pointer;color:var(--ink);font-weight:600}
+  .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border:none;color:#fff}
+  .btn-danger{border-color:#ffd8d7;color:#b00020;background:#fff}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+  .tab{border:1px solid var(--stroke);border-radius:999px;padding:8px 12px;background:#fff;cursor:pointer}
+  .tab.active{background:#0b1220;color:#fff;border-color:#0b1220}
+
+  .grid{display:grid;gap:16px}
+  .grid-2{grid-template-columns:1fr}
+  @media (min-width:1020px){ .grid-2{grid-template-columns:1fr 1fr} }
+
+  .card{background:#fff;border:1px solid var(--stroke);border-radius:20px;box-shadow:0 14px 38px rgba(13,16,21,.08);padding:18px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .kpi{border:1px solid var(--stroke);border-radius:14px;padding:14px;background:#fff}
+  .kpi b{font-size:22px;display:block;margin-top:6px}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid var(--stroke);text-align:left}
+  th{background:#f6f7fb}
+
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field{display:grid;gap:6px;margin:8px 0}
+  .input,.select,.textarea{border:1px solid var(--stroke);border-radius:10px;padding:10px;font-size:14px;background:#fff}
+  .textarea{min-height:96px}
+  .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .tag{display:inline-block;border:1px solid var(--stroke);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--muted)}
+  .badge{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;font-weight:600}
+  .badge.ok{color:#065f46;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25)}
+  .badge.warn{color:#9a3412;background:#fff7ed;border:1px solid #ffedd5}
+  .empty{padding:14px;border:1px dashed var(--stroke);border-radius:12px;color:var(--muted);text-align:center}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(9,12,17,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
+  .modal.show{display:flex}
+  .modal .sheet{width:min(560px,96vw);background:#fff;border-radius:18px;border:1px solid var(--stroke);box-shadow:0 28px 64px rgba(0,0,0,.25);padding:16px}
+  .modal .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+  /* tiny bars for Reports */
+  .bar{height:10px;background:linear-gradient(90deg,#3b82f6,#2563eb);border-radius:999px}
+</style>
+</head>
+<body>
+  <header class="header">
+    <div class="inner">
+      <div class="brand"><div class="logo"></div><h1>A1 Admin</h1></div>
+      <div class="actions" style="display:flex;gap:10px;align-items:center">
+        <div id="syncBadge" class="status off">Local</div>
+        <button id="seedBtn" class="btn">Data</button>
+        <button id="logoutBtn" class="btn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="topbar">
+      <div class="muted" id="who"></div>
+      <div class="actions">
+        <button id="exportBookingsBtn" class="btn">Export bookings CSV</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="bookings">Bookings</button>
+      <button class="tab" data-tab="slots">Slots</button>
+      <button class="tab" data-tab="services">Services</button>
+      <button class="tab" data-tab="stylists">Stylists</button>
+      <button class="tab" data-tab="settings">Settings</button>
+      <button class="tab" data-tab="reports">Reports</button>
+      <button class="tab" data-tab="waitlist">Waitlist</button>
+    </div>
+
+    <!-- Overview -->
+    <section id="tab-overview">
+      <div class="card">
+        <div class="kpis">
+          <div class="kpi"><span class="muted">Today booked</span><b id="kpiToday">0</b></div>
+          <div class="kpi"><span class="muted">Utilisation (week)</span><b id="kpiUtil">0%</b></div>
+          <div class="kpi"><span class="muted">Revenue (7d)</span><b id="kpiRev">$0</b></div>
+          <div class="kpi"><span class="muted">Total customers</span><b id="kpiCust">0</b></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="margin:0">Upcoming bookings</h3>
+          <span class="tag" id="bkCount">0 total</span>
+        </div>
+        <div>
+          <table>
+            <thead><tr><th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Stylist</th><th>Price</th><th>Status</th></tr></thead>
+            <tbody id="upcomingBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bookings -->
+    <section id="tab-bookings" style="display:none">
+      <div class="card">
+        <div class="actions" style="justify-content:space-between;margin-bottom:8px">
+          <div class="actions">
+            <input id="bkFrom" class="input" type="date"/>
+            <input id="bkTo" class="input" type="date"/>
+            <select id="bkStatus" class="select">
+              <option value="">Any status</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no-show">No-show</option>
+            </select>
+            <input id="bkQuery" class="input" placeholder="Search name/email"/>
+            <button id="bkRefresh" class="btn">Apply</button>
+          </div>
+          <div class="actions">
+            <button id="bkAdd" class="btn btn-primary">New booking</button>
+          </div>
+        </div>
+        <div id="bkWrap"></div>
+      </div>
+    </section>
+
+    <!-- Slots -->
+    <section id="tab-slots" style="display:none">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 style="margin:0">Add slot</h3>
+          <div class="form-row">
+            <div class="field"><label>Date</label><input id="slotDate" type="date" class="input"/></div>
+            <div class="field"><label>Start</label><input id="slotStart" type="time" class="input"/></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Capacity</label><input id="slotCap" type="number" class="input" value="4" min="1"/></div>
+            <div class="field"><label>Stylist</label><select id="slotSty" class="select"></select></div>
+          </div>
+          <div class="actions">
+            <button id="addSlotBtn" class="btn btn-primary">Add slot</button>
+            <span id="slotMsg" class="muted"></span>
+          </div>
+
+          <h3 style="margin:18px 0 6px">Bulk generate</h3>
+          <div class="form-row">
+            <div class="field"><label>Dates</label><input id="bulkFrom" type="date" class="input"/></div>
+            <div class="field"><label>&nbsp;</label><input id="bulkTo" type="date" class="input"/></div>
+          </div>
+          <div class="field"><label>Times (comma separated)</label><input id="bulkTimes" class="input" placeholder="10:00, 11:00, 12:00, 14:00"/></div>
+          <div class="field"><label>Weekdays</label>
+            <div class="actions">
+              <label><input type="checkbox" class="wd" value="1" checked> Mon</label>
+              <label><input type="checkbox" class="wd" value="2" checked> Tue</label>
+              <label><input type="checkbox" class="wd" value="3" checked> Wed</label>
+              <label><input type="checkbox" class="wd" value="4" checked> Thu</label>
+              <label><input type="checkbox" class="wd" value="5" checked> Fri</label>
+              <label><input type="checkbox" class="wd" value="6"> Sat</label>
+              <label><input type="checkbox" class="wd" value="0"> Sun</label>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="bulkBtn" class="btn">Generate slots</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 6px">Slots</h3>
+          <div id="slotsWrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section id="tab-services" style="display:none">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 style="margin:0 0 6px">Add service</h3>
+          <div class="field"><label>Name</label><input id="svcName" class="input" placeholder="Haircut"/></div>
+          <div class="form-row">
+            <div class="field"><label>Duration (min)</label><input id="svcDur" type="number" class="input" value="30"/></div>
+            <div class="field"><label>Price</label><input id="svcPrice" type="number" class="input" value="60"/></div>
+          </div>
+          <div class="field"><label>Description (optional)</label><textarea id="svcDesc" class="textarea"></textarea></div>
+          <div class="actions"><button id="addSvcBtn" class="btn btn-primary">Add service</button></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 6px">Services</h3>
+          <div id="svcWrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stylists -->
+    <section id="tab-stylists" style="display:none">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 style="margin:0 0 6px">Add stylist</h3>
+          <div class="field"><label>Full name</label><input id="styName" class="input" placeholder="Jane Doe"/></div>
+          <div class="field"><label>Email</label><input id="styEmail" type="email" class="input" placeholder="jane@salon.com"/></div>
+          <div class="actions"><button id="addStyBtn" class="btn btn-primary">Add stylist</button></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 6px">Stylists</h3>
+          <div id="styWrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="tab-settings" style="display:none">
+      <div class="card">
+        <h3 style="margin:0 0 6px">Business settings</h3>
+        <div class="form-row">
+          <div class="field"><label>Business name</label><input id="bizName" class="input"/></div>
+          <div class="field"><label>Timezone</label><input id="bizTz" class="input" placeholder="e.g. Australia/Sydney"/></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Lead time (hours)</label><input id="leadTime" type="number" class="input" value="2"/></div>
+          <div class="field"><label>Cancellation window (hours)</label><input id="cancelWindow" type="number" class="input" value="12"/></div>
+        </div>
+        <div class="field"><label>Opening hours (Mon–Sun)</label>
+          <input id="hoursStr" class="input" placeholder="09:00-17:00,09:00-17:00,09:00-17:00,09:00-17:00,09:00-17:00,10:00-14:00,closed"/>
+          <div class="muted">CSV for 7 days. Use <b>closed</b> for a day off.</div>
+        </div>
+        <div class="actions"><button id="saveSettings" class="btn btn-primary">Save settings</button><span id="setMsg" class="muted"></span></div>
+      </div>
+    </section>
+
+    <!-- Reports -->
+    <section id="tab-reports" style="display:none">
+      <div class="grid grid-2">
+        <div class="card">
+          <h3 style="margin:0 0 6px">Top services (bookings – last 30d)</h3>
+          <div id="repServices"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 6px">Top stylists (bookings – last 30d)</h3>
+          <div id="repStylists"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Waitlist -->
+    <section id="tab-waitlist" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="margin:0">Waitlist</h3>
+          <label style="display:flex;gap:8px;align-items:center">
+            <input id="wlAuto" type="checkbox"> Auto-fill when slot opens
+          </label>
+        </div>
+        <div id="wlWrap"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="sheet">
+      <div class="top">
+        <h3 id="modalTitle" style="margin:0">Edit</h3>
+        <button id="modalClose" class="btn">Close</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+<script type="module">
+  import { firebaseConfig } from './firebase.js';
+  import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+  import {
+    getFirestore, collection, getDocs, addDoc, doc, deleteDoc, setDoc, serverTimestamp, getDoc
+  } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  /* ---------- Guard ---------- */
+  const sess = JSON.parse(localStorage.getItem('adminSession')||'null');
+  if(!sess?.email){ location.href='./admin-login.html'; }
+  const $=id=>document.getElementById(id);
+  $('who').textContent = 'Signed in as ' + (sess?.email||'');
+
+  /* ---------- Firebase ---------- */
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  /* ---------- Sync badge ---------- */
+  function setSyncBadge(live){
+    const b=$('syncBadge');
+    if(live){ b.textContent='Live'; b.classList.remove('off'); }
+    else { b.textContent='Local'; b.classList.add('off'); }
+  }
+
+  /* ---------- Local store ---------- */
+  const K = { services:'a1:services', stylists:'a1:stylists', slots:'a1:slots', settings:'a1:settings' };
+  const local = {
+    read:(key,def=null)=> JSON.parse(localStorage.getItem(key)||JSON.stringify(def)),
+    write:(key,val)=> localStorage.setItem(key, JSON.stringify(val)),
+    list:(key)=> JSON.parse(localStorage.getItem(key)||'[]'),
+    save:(key,arr)=> localStorage.setItem(key, JSON.stringify(arr)),
+    upsert:(key,obj)=>{ const arr=local.list(key); if(!obj.id) obj.id='local-'+Date.now()+Math.random().toString(36).slice(2); const i=arr.findIndex(x=>x.id===obj.id); if(i>=0) arr[i]=obj; else arr.push(obj); local.save(key,arr); return obj.id; },
+    remove:(key,id)=> local.save(key, local.list(key).filter(x=>x.id!==id))
+  };
+
+  /* ---------- FS helpers ---------- */
+  async function fsList(col){ try{ const s=await getDocs(collection(db,col)); setSyncBadge(true); return s.docs.map(d=>({id:d.id,...d.data()})); }catch{ setSyncBadge(false); return null; } }
+  async function fsAdd(col,d){ try{ const ref=await addDoc(collection(db,col), d); setSyncBadge(true); return ref.id; }catch{ setSyncBadge(false); return null; } }
+  async function fsSet(col,id,d){ try{ await setDoc(doc(db,col,id), d, {merge:true}); setSyncBadge(true); return true; }catch{ setSyncBadge(false); return false; } }
+  async function fsDel(col,id){ try{ await deleteDoc(doc(db,col,id)); setSyncBadge(true); return true; }catch{ setSyncBadge(false); return false; } }
+
+  /* ---------- Tabs ---------- */
+  const tabs=[...document.querySelectorAll('.tab')];
+  const panes={
+    overview:$('tab-overview'), bookings:$('tab-bookings'), slots:$('tab-slots'),
+    services:$('tab-services'), stylists:$('tab-stylists'), settings:$('tab-settings'),
+    reports:$('tab-reports'), waitlist:$('tab-waitlist')
+  };
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    for(const k in panes) panes[k].style.display = (k===t.dataset.tab?'block':'none');
+  }));
+
+  /* ---------- Util ---------- */
+  const pad=n=>String(n).padStart(2,'0');
+  const toYMD=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const addDays=(d,n)=>{ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; };
+  function dl(filename, text){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'})); a.download=filename; a.click(); URL.revokeObjectURL(a.href); }
+  function csvRow(arr){ return arr.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(','); }
+
+  /* ---------- Readers ---------- */
+  async function listServices(){ const fs=await fsList('services'); return fs || local.list(K.services); }
+  async function listStylists(){ const fs=await fsList('stylists'); return fs || local.list(K.stylists); }
+  async function listSlots(){ const fs=await fsList('slots'); if(fs && fs.length) return fs; return local.list(K.slots); }
+  async function listBookings(){
+    let r=[]; try{ const s=await getDocs(collection(db,'bookings')); r=s.docs.map(d=>({id:d.id,...d.data()})); setSyncBadge(true);}catch{ setSyncBadge(false); }
+    // local bookings created via virtual flow
+    for(const k in localStorage){ if(k.startsWith('booking:')){ try{ const b=JSON.parse(localStorage.getItem(k)||'null'); if(b) r.push({id:k.slice(8),...b}); }catch{} } }
+    return r;
+  }
+  async function readSettings(){
+    try{
+      const s = await getDoc(doc(db,'settings','default'));
+      setSyncBadge(true);
+      if(s.exists()) return {id:'default', ...s.data()};
+    }catch{ setSyncBadge(false); }
+    return local.read(K.settings, {id:'default'});
+  }
+  async function writeSettings(obj){
+    if(!(await fsSet('settings','default', obj))) local.write(K.settings, obj);
+  }
+
+  /* ---------- Seed ---------- */
+  $('seedBtn').addEventListener('click', ()=>{
+    if(local.list(K.services).length===0){
+      local.upsert(K.services,{id:'svc-cut', name:'Haircut', duration:30, price:55, description:'Wash & cut'});
+      local.upsert(K.services,{id:'svc-color', name:'Color', duration:60, price:90, description:'Full color'});
+      local.upsert(K.services,{id:'svc-style', name:'Styling', duration:30, price:45});
+    }
+    if(local.list(K.stylists).length===0){
+      local.upsert(K.stylists,{id:'sty-zen', full_name:'Zenith', email:'zenith@salon.com'});
+      local.upsert(K.stylists),{};
+      local.upsert(K.stylists,{id:'sty-mia', full_name:'Mia', email:'mia@salon.com'});
+    }
+    if(local.list(K.slots).length===0){
+      const today=new Date();
+      ['10:00','11:00','12:00','14:00','16:00'].forEach(t=>{
+        local.upsert(K.slots,{date:toYMD(today), start_time:t, capacity:4, remaining:4, isOpen:true, stylist_id:'sty-zen'});
+      });
+    }
+    refreshAll();
+  });
+
+  /* ---------- Overview ---------- */
+  async function renderOverview(){
+    const [svcs, slots, bookings] = await Promise.all([listServices(), listSlots(), listBookings()]);
+    const svcMap = Object.fromEntries(svcs.map(s=>[s.id,s]));
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayYMD = toYMD(today);
+
+    const capDay={};
+    for(const s of slots){
+      const cap=Number(s.capacity||0), rem=Number(s.remaining ?? s.capacity ?? 0);
+      capDay[s.date]??={cap:0,rem:0}; capDay[s.date].cap+=cap; capDay[s.date].rem+=rem;
+    }
+    const todayCap=capDay[todayYMD]?.cap||0, todayRem=capDay[todayYMD]?.rem||0;
+    $('kpiToday').textContent = Math.max(0,todayCap-todayRem);
+
+    const weekDates= new Set([...Array(7)].map((_,i)=>toYMD(addDays(today,-((today.getDay()+6)%7)+i))));
+    const w = Object.entries(capDay).filter(([d])=>weekDates.has(d)).reduce((a,[,v])=>({cap:a.cap+v.cap, rem:a.rem+v.rem}),{cap:0,rem:0});
+    $('kpiUtil').textContent = w.cap ? Math.round(((w.cap-w.rem)/w.cap)*100)+'%' : '0%';
+
+    let rev7=0, custSet=new Set();
+    const next7=addDays(today,6);
+    for(const b of bookings){
+      if(b.date){ const dt=new Date(b.date+'T00:00:00'); if(dt>=today && dt<=next7){ const s=svcMap[b.service_id]; if(s?.price!=null) rev7 += Number(s.price)||0; } }
+      if(b.customer_email) custSet.add(b.customer_email);
+    }
+    $('kpiRev').textContent = '$'+rev7;
+    $('kpiCust').textContent = custSet.size;
+
+    const rows=[...bookings].sort((a,b)=> a.date===b.date ? String(a.start_time).localeCompare(b.start_time) : (a.date<b.date?-1:1)).slice(0,20);
+    $('bkCount').textContent = rows.length+' total';
+    $('upcomingBody').innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r.date||'-'}</td>
+        <td>${[r.start_time, r.end_time?('– '+r.end_time):''].filter(Boolean).join(' ')}</td>
+        <td>${r.customer_name?`${r.customer_name} (${r.customer_email||''})`:'—'}</td>
+        <td>${svcMap[r.service_id]?.name || r.service_id || '—'}</td>
+        <td>${r.stylist_id || '—'}</td>
+        <td>${svcMap[r.service_id]?.price!=null?('$'+svcMap[r.service_id].price):'—'}</td>
+        <td><span class="badge ${r.status==='cancelled'?'warn':'ok'}">${r.status||'confirmed'}</span></td>
+      </tr>`).join('');
+  }
+
+  /* ---------- Bookings ---------- */
+  function filterBookings(list){
+    const q = $('bkQuery').value.trim().toLowerCase();
+    const s = $('bkStatus').value;
+    const from = $('bkFrom').value || '0000-01-01';
+    const to   = $('bkTo').value   || '9999-12-31';
+    return list.filter(b=>{
+      const okQ = q ? (`${b.customer_name||''} ${b.customer_email||''}`.toLowerCase().includes(q)) : true;
+      const okS = s ? (b.status===s) : true;
+      const okD = (!b.date || (b.date>=from && b.date<=to));
+      return okQ && okS && okD;
+    });
+  }
+  function renderBookingsTable(rows, svcMap){
+    if(!rows.length){ $('bkWrap').innerHTML = '<div class="empty">No bookings found.</div>'; return; }
+    const table = `
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Time</th><th>Customer</th><th>Service</th><th>Stylist</th><th>Status</th><th style="width:220px">Actions</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr data-id="${r.id}">
+              <td>${r.date||'-'}</td>
+              <td>${[r.start_time, r.end_time?('– '+r.end_time):''].filter(Boolean).join(' ')}</td>
+              <td>${r.customer_name?`${r.customer_name} (${r.customer_email||''})`:'—'}</td>
+              <td>${svcMap[r.service_id]?.name || r.service_id || '—'}</td>
+              <td>${r.stylist_id||'—'}</td>
+              <td>${r.status||'confirmed'}</td>
+              <td class="actions">
+                <button class="btn" data-edit>Edit</button>
+                <button class="btn" data-resched>Reschedule</button>
+                <button class="btn" data-cancel>Cancel</button>
+                <button class="btn btn-danger" data-del>Delete</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+    $('bkWrap').innerHTML = table;
+
+    $('bkWrap').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEdit(b.closest('tr').dataset.id));
+    $('bkWrap').querySelectorAll('[data-resched]').forEach(b=>b.onclick=()=>openResched(b.closest('tr').dataset.id));
+    $('bkWrap').querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>setStatus(b.closest('tr').dataset.id,'cancelled'));
+    $('bkWrap').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteBooking(b.closest('tr').dataset.id));
+  }
+  async function renderBookings(){
+    const [svcs, list] = await Promise.all([listServices(), listBookings()]);
+    const svcMap = Object.fromEntries(svcs.map(s=>[s.id,s]));
+    const rows = filterBookings(list).sort((a,b)=> a.date===b.date ? String(a.start_time).localeCompare(b.start_time) : (a.date<b.date?-1:1));
+    renderBookingsTable(rows, svcMap);
+  }
+  $('bkRefresh').onclick = renderBookings;
+  $('bkQuery').oninput = ()=>{ if($('bkQuery').value.length===0) renderBookings(); };
+  $('bkAdd').onclick = openNewBooking;
+
+  async function setStatus(id, status){
+    if(await fsSet('bookings', id, {status})){} else {
+      const key='booking:'+id;
+      const raw=localStorage.getItem(key); if(raw){ const b=JSON.parse(raw); b.status=status; localStorage.setItem(key, JSON.stringify(b)); }
+    }
+    renderBookings(); renderOverview();
+  }
+  async function deleteBooking(id){
+    if(await fsDel('bookings', id)){} else { localStorage.removeItem('booking:'+id); }
+    renderBookings(); renderOverview();
+  }
+
+  // Modal helpers
+  const modal=$('modal'), modalBody=$('modalBody'), modalTitle=$('modalTitle'); $('modalClose').onclick=()=>modal.classList.remove('show');
+  function openNewBooking(){
+    modalTitle.textContent='New booking';
+    modalBody.innerHTML = `
+      <div class="form-row">
+        <div class="field"><label>Date</label><input id="bDate" class="input" type="date"></div>
+        <div class="field"><label>Start</label><input id="bStart" class="input" type="time"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Service ID</label><input id="bSvc" class="input" placeholder="svc-cut"></div>
+        <div class="field"><label>Stylist ID</label><input id="bSty" class="input" placeholder="sty-zen"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Name</label><input id="bName" class="input"></div>
+        <div class="field"><label>Email</label><input id="bEmail" class="input" type="email"></div>
+      </div>
+      <div class="actions"><button id="bSave" class="btn btn-primary">Create</button></div>`;
+    $('bSave').onclick = async ()=>{
+      const b={date:$('bDate').value,start_time:$('bStart').value,service_id:$('bSvc').value,stylist_id:$('bSty').value,
+               customer_name:$('bName').value,customer_email:$('bEmail').value,status:'confirmed',created_at:serverTimestamp()};
+      let id=null; id=await fsAdd('bookings', b);
+      if(!id){ const lid='local-'+Date.now(); localStorage.setItem('booking:'+lid, JSON.stringify(b)); }
+      modal.classList.remove('show'); renderBookings(); renderOverview();
+    };
+    modal.classList.add('show');
+  }
+  async function openEdit(id){
+    let b=null;
+    try{ const s=await getDoc(doc(db,'bookings',id)); b=s.exists()?s.data():null; }catch{}
+    if(!b){ const raw=localStorage.getItem('booking:'+id); if(raw) b=JSON.parse(raw); }
+    if(!b) return;
+    modalTitle.textContent='Edit booking';
+    modalBody.innerHTML = `
+      <div class="field"><label>Customer name</label><input id="eName" class="input" value="${b.customer_name||''}"></div>
+      <div class="field"><label>Customer email</label><input id="eEmail" class="input" type="email" value="${b.customer_email||''}"></div>
+      <div class="field"><label>Notes</label><textarea id="eNotes" class="textarea">${b.notes||''}</textarea></div>
+      <div class="actions"><button id="eSave" class="btn btn-primary">Save</button></div>`;
+    $('eSave').onclick=async ()=>{
+      const patch={customer_name:$('eName').value, customer_email:$('eEmail').value, notes:$('eNotes').value};
+      if(await fsSet('bookings', id, patch)){} else {
+        const key='booking:'+id; const raw=localStorage.getItem(key); if(raw){ const bb=JSON.parse(raw); Object.assign(bb, patch); localStorage.setItem(key, JSON.stringify(bb)); }
+      }
+      modal.classList.remove('show'); renderBookings();
+    };
+    modal.classList.add('show');
+  }
+  function openResched(id){
+    modalTitle.textContent='Reschedule';
+    modalBody.innerHTML = `
+      <div class="form-row">
+        <div class="field"><label>New date</label><input id="rDate" class="input" type="date"></div>
+        <div class="field"><label>New start</label><input id="rStart" class="input" type="time"></div>
+      </div>
+      <div class="actions"><button id="rSave" class="btn btn-primary">Apply</button></div>`;
+    $('rSave').onclick=async ()=>{
+      const patch={date:$('rDate').value, start_time:$('rStart').value};
+      if(await fsSet('bookings', id, patch)){} else {
+        const key='booking:'+id; const raw=localStorage.getItem(key); if(raw){ const bb=JSON.parse(raw); Object.assign(bb, patch); localStorage.setItem(key, JSON.stringify(bb)); }
+      }
+      modal.classList.remove('show'); renderBookings(); renderOverview();
+    };
+    modal.classList.add('show');
+  }
+
+  /* ---------- Export CSV ---------- */
+  $('exportBookingsBtn').onclick = async ()=>{
+    const rows = await listBookings();
+    const header = ['id','date','start_time','end_time','customer_name','customer_email','customer_phone','service_id','stylist_id','status'];
+    const csv = [csvRow(header)].concat(rows.map(b=>csvRow(header.map(k=>b[k])))).join('\n');
+    dl('bookings.csv', csv);
+  };
+
+  /* ---------- Slots ---------- */
+  async function renderSlots(){
+    const [stylists, slots] = await Promise.all([listStylists(), listSlots()]);
+    $('slotSty').innerHTML = '<option value="">— Any —</option>' + stylists.map(s=>`<option value="${s.id}">${s.full_name||s.name||s.id}</option>`).join('');
+    if(!slots.length){ $('slotsWrap').innerHTML='<div class="empty">No slots yet.</div>'; return; }
+    $('slotsWrap').innerHTML = `
+      <table>
+        <thead><tr><th>Date</th><th>Start</th><th>Cap</th><th>Remaining</th><th>Stylist</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${slots.map(s=>`
+          <tr data-id="${s.id||''}">
+            <td>${s.date||'-'}</td><td>${s.start_time||'-'}</td>
+            <td>${s.capacity||0}</td><td>${(s.remaining ?? s.capacity ?? 0)}</td>
+            <td>${s.stylist_id||'—'}</td>
+            <td>${s.isOpen===false?'<span class="badge warn">Closed</span>':'<span class="badge ok">Open</span>'}</td>
+            <td class="actions">
+              <button class="btn" data-toggle>${s.isOpen===false?'Open':'Close'}</button>
+              <button class="btn btn-danger" data-del>Delete</button>
+            </td>
+          </tr>`).join('')}</tbody>
+      </table>`;
+    $('slotsWrap').querySelectorAll('[data-toggle]').forEach(b=>b.onclick=async()=>{
+      const tr=b.closest('tr'), id=tr.dataset.id;
+      const current = tr.querySelector('.badge').textContent==='Open';
+      if(await fsSet('slots', id, {isOpen: !current})){} else {
+        const arr=local.list(K.slots); const i=arr.findIndex(x=>x.id===id); if(i>=0){ arr[i].isOpen=!current; local.save(K.slots, arr); }
+      }
+      renderSlots(); renderOverview();
+    });
+    $('slotsWrap').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      const id=b.closest('tr').dataset.id;
+      if(await fsDel('slots', id)){} else { local.remove(K.slots, id); }
+      renderSlots(); renderOverview();
+    });
+  }
+  $('addSlotBtn').onclick = async ()=>{
+    const d={ date:$('slotDate').value, start_time:$('slotStart').value, capacity:Number($('slotCap').value||1), remaining:Number($('slotCap').value||1), isOpen:true, stylist_id:$('slotSty').value||'' };
+    if(!d.date || !d.start_time){ $('slotMsg').textContent='Pick date & time'; return; }
+    if(!(await fsAdd('slots', d))) local.upsert(K.slots, d);
+    $('slotMsg').textContent=''; $('slotDate').value=''; $('slotStart').value='';
+    renderSlots(); renderOverview();
+  };
+  $('bulkBtn').onclick = async ()=>{
+    const from=$('bulkFrom').value, to=$('bulkTo').value; if(!from||!to) return;
+    const times = $('bulkTimes').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const wds = [...document.querySelectorAll('.wd')].filter(x=>x.checked).map(x=>Number(x.value));
+    let d=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00');
+    while(d<=end){
+      if(wds.includes(d.getDay())){
+        const ymd=toYMD(d);
+        for(const t of times){
+          const slot={date:ymd,start_time:t,capacity:4,remaining:4,isOpen:true,stylist_id:$('slotSty').value||''};
+          if(!(await fsAdd('slots', slot))) local.upsert(K.slots, slot);
+        }
+      }
+      d=addDays(d,1);
+    }
+    renderSlots(); renderOverview();
+  };
+
+  /* ---------- Services ---------- */
+  async function renderServices(){
+    const list = await listServices();
+    if(!list.length){ $('svcWrap').innerHTML='<div class="empty">No services yet.</div>'; return; }
+    $('svcWrap').innerHTML = `
+      <table>
+        <thead><tr><th>Name</th><th>Duration</th><th>Price</th><th>Description</th><th>Actions</th></tr></thead>
+        <tbody>${list.map(s=>`
+          <tr data-id="${s.id||''}">
+            <td>${s.name||'-'}</td><td>${(s.duration||0)+' min'}</td><td>${s.price!=null?('$'+s.price):'—'}</td><td>${s.description||''}</td>
+            <td class="actions"><button class="btn" data-edit>Edit</button><button class="btn btn-danger" data-del>Delete</button></td>
+          </tr>`).join('')}</tbody>
+      </table>`;
+    $('svcWrap').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      const id=b.closest('tr').dataset.id; if(await fsDel('services', id)){} else { local.remove(K.services, id); }
+      renderServices(); renderOverview();
+    });
+    $('svcWrap').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
+      const tr=b.closest('tr'); const cells=tr.children;
+      modalTitle.textContent='Edit service';
+      modalBody.innerHTML=`
+        <div class="field"><label>Name</label><input id="sName" class="input" value="${cells[0].textContent}"></div>
+        <div class="form-row"><div class="field"><label>Duration</label><input id="sDur" class="input" type="number" value="${parseInt(cells[1].textContent)||30}"></div>
+        <div class="field"><label>Price</label><input id="sPrice" class="input" type="number" value="${(cells[2].textContent.replace('$',''))||0}"></div></div>
+        <div class="field"><label>Description</label><textarea id="sDesc" class="textarea">${cells[3].textContent||''}</textarea></div>
+        <div class="actions"><button id="sSave" class="btn btn-primary">Save</button></div>`;
+      $('sSave').onclick=async()=>{
+        const id=tr.dataset.id, obj={name:$('sName').value,duration:Number($('sDur').value||30),price:Number($('sPrice').value||0),description:$('sDesc').value};
+        if(await fsSet('services', id, obj)){} else {
+          const arr=local.list(K.services); const i=arr.findIndex(x=>x.id===id); if(i>=0){ arr[i]=Object.assign(arr[i], obj); local.save(K.services, arr); }
+        }
+        modal.classList.remove('show'); renderServices(); renderOverview();
+      };
+      modal.classList.add('show');
+    });
+  }
+  $('addSvcBtn').onclick = async ()=>{
+    const obj={name:$('svcName').value.trim(), duration:Number($('svcDur').value||30), price:Number($('svcPrice').value||0), description:$('svcDesc').value||'', created_at:serverTimestamp()};
+    if(!obj.name) return;
+    if(!(await fsAdd('services', obj))) local.upsert(K.services, obj);
+    $('svcName').value=''; $('svcDur').value='30'; $('svcPrice').value='60'; $('svcDesc').value='';
+    renderServices(); renderOverview();
+  };
+
+  /* ---------- Stylists ---------- */
+  async function renderStylists(){
+    const list = await listStylists();
+    if(!list.length){ $('styWrap').innerHTML='<div class="empty">No stylists yet.</div>'; return; }
+    $('styWrap').innerHTML = `
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+        <tbody>${list.map(s=>`
+          <tr data-id="${s.id||''}">
+            <td>${s.full_name||s.name||'-'}</td>
+            <td>${s.email||'—'}</td>
+            <td class="actions"><button class="btn" data-edit>Edit</button><button class="btn btn-danger" data-del>Delete</button></td>
+          </tr>`).join('')}</tbody>
+      </table>`;
+    $('styWrap').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      const id=b.closest('tr').dataset.id; if(await fsDel('stylists', id)){} else { local.remove(K.stylists, id); }
+      renderStylists(); renderSlots(); renderOverview();
+    });
+    $('styWrap').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
+      const tr=b.closest('tr'); const tds=tr.children;
+      modalTitle.textContent='Edit stylist';
+      modalBody.innerHTML=`
+        <div class="field"><label>Full name</label><input id="pName" class="input" value="${tds[0].textContent}"></div>
+        <div class="field"><label>Email</label><input id="pEmail" class="input" value="${tds[1].textContent}"></div>
+        <div class="actions"><button id="pSave" class="btn btn-primary">Save</button></div>`;
+      $('pSave').onclick=async()=>{
+        const id=tr.dataset.id, obj={full_name:$('pName').value, email:$('pEmail').value};
+        if(await fsSet('stylists', id, obj)){} else {
+          const arr=local.list(K.stylists); const i=arr.findIndex(x=>x.id===id); if(i>=0){ arr[i]=Object.assign(arr[i], obj); local.save(K.stylists, arr); }
+        }
+        modal.classList.remove('show'); renderStylists(); renderSlots();
+      };
+      modal.classList.add('show');
+    });
+  }
+  $('addStyBtn').onclick = async ()=>{
+    const obj={full_name:$('styName').value.trim(), email:$('styEmail').value.trim()};
+    if(!obj.full_name) return;
+    if(!(await fsAdd('stylists', obj))) local.upsert(K.stylists, obj);
+    $('styName').value=''; $('styEmail').value='';
+    renderStylists(); renderSlots();
+  };
+
+  /* ---------- Settings ---------- */
+  async function renderSettings(){
+    const s = await readSettings();
+    $('bizName').value = s.bizName||'A1 Hair & Beauty';
+    $('bizTz').value   = s.bizTz||Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+    $('leadTime').value= s.leadTime||2;
+    $('cancelWindow').value= s.cancelWindow||12;
+    $('hoursStr').value= s.hoursStr || '09:00-17:00,09:00-17:00,09:00-17:00,09:00-17:00,09:00-17:00,10:00-14:00,closed';
+  }
+  $('saveSettings').onclick = async ()=>{
+    const obj={
+      id:'default',
+      bizName:$('bizName').value, bizTz:$('bizTz').value,
+      leadTime:Number($('leadTime').value||0), cancelWindow:Number($('cancelWindow').value||0),
+      hoursStr:$('hoursStr').value
+    };
+    await writeSettings(obj); $('setMsg').textContent='Saved';
+    setTimeout(()=>$('setMsg').textContent='',1200);
+  };
+
+  /* ---------- Reports ---------- */
+  async function renderReports(){
+    const [svcs, bks] = await Promise.all([listServices(), listBookings()]);
+    const svcMap = Object.fromEntries(svcs.map(s=>[s.id,s.name]));
+    const last30 = new Date(); last30.setDate(last30.getDate()-30);
+    const countBy=(keyFn)=> bks.filter(b=>b.date && new Date(b.date)>=last30).reduce((m,b)=>{ const k=keyFn(b); m[k]=(m[k]||0)+1; return m; },{});
+    const sCounts = countBy(b=>b.service_id||'—');
+    const tCounts = countBy(b=>b.stylist_id||'—');
+
+    function bars(obj, namer){
+      const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const max = Math.max(1,...entries.map(([,v])=>v));
+      return entries.map(([k,v])=>`
+        <div style="display:grid;grid-template-columns:180px 1fr 40px;align-items:center;gap:10px;margin:6px 0">
+          <div class="muted" title="${k}">${(namer? namer(k):k)}</div>
+          <div class="bar" style="width:${Math.round((v/max)*100)}%"></div>
+          <b style="text-align:right">${v}</b>
+        </div>`).join('');
+    }
+    $('repServices').innerHTML = bars(sCounts, k=>svcMap[k]||k);
+    $('repStylists').innerHTML = bars(tCounts);
+  }
+
+  /* ---------- Waitlist ---------- */
+  const WL_KEY='a1:waitlist';
+  async function wlList(){
+    try{
+      const s = await getDocs(collection(db,'waitlist'));
+      setSyncBadge(true);
+      return s.docs.map(d=>({id:d.id,...d.data()}));
+    }catch{ setSyncBadge(false); return JSON.parse(localStorage.getItem(WL_KEY)||'[]'); }
+  }
+  async function wlRemove(id){
+    if(await fsDel('waitlist', id)) return;
+    const arr = JSON.parse(localStorage.getItem(WL_KEY)||'[]').filter(x=>x.id!==id);
+    localStorage.setItem(WL_KEY, JSON.stringify(arr));
+  }
+  async function renderWaitlist(){
+    const items = await wlList();
+    if(!items.length){ $('wlWrap').innerHTML='<div class="empty">No one is waiting.</div>'; return; }
+    $('wlWrap').innerHTML = `
+      <table>
+        <thead><tr><th>Requested date</th><th>Name</th><th>Email</th><th>Service</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${items.map(w=>`
+            <tr data-id="${w.id}">
+              <td>${w.date||'—'}</td>
+              <td>${w.name||''}</td>
+              <td>${w.email||''}</td>
+              <td>${w.service_id||'—'}</td>
+              <td>${w.notes||''}</td>
+              <td class="actions">
+                <button class="btn" data-offer>Offer earliest slot</button>
+                <button class="btn btn-danger" data-del>Remove</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+    $('wlWrap').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      await wlRemove(b.closest('tr').dataset.id); renderWaitlist();
+    });
+    $('wlWrap').querySelectorAll('[data-offer]').forEach(b=>b.onclick=()=>wlOffer(b.closest('tr').dataset.id));
+  }
+  async function wlOffer(waitId){
+    const [slots, items] = await Promise.all([listSlots(), wlList()]);
+    const w = items.find(x=>x.id===waitId);
+    if(!w){ alert('Waitlist entry not found'); return; }
+    const open = (slots||[]).filter(s=> (s.isOpen!==false) && ((s.remaining ?? s.capacity ?? 0) > 0));
+    if(!open.length){ alert('No open slots right now'); return; }
+    const slot = open.sort((a,b)=> (a.date+a.start_time < b.date+b.start_time ? -1 : 1))[0];
+
+    const booking = {
+      date: slot.date, start_time: slot.start_time,
+      service_id: w.service_id || '', stylist_id: slot.stylist_id || '',
+      customer_name: w.name, customer_email: w.email,
+      status:'confirmed', created_at: new Date().toISOString(), source:'waitlist'
+    };
+    try{ await addDoc(collection(db,'bookings'), booking); }
+    catch{
+      const lid='local-'+Date.now(); localStorage.setItem('booking:'+lid, JSON.stringify(booking));
+    }
+    try{ await setDoc(doc(db,'slots', slot.id), { remaining: Math.max(0, (slot.remaining ?? slot.capacity ?? 1) - 1) }, { merge:true }); }
+    catch{
+      const arr = JSON.parse(localStorage.getItem(K.slots)||'[]');
+      const i = arr.findIndex(x=>x.id===slot.id); if(i>=0){ arr[i].remaining = Math.max(0,(arr[i].remaining ?? arr[i].capacity ?? 1)-1); localStorage.setItem(K.slots, JSON.stringify(arr)); }
+    }
+    await wlRemove(waitId);
+    renderWaitlist(); renderBookings(); renderOverview();
+  }
+  const wlAutoBox = $('wlAuto');
+  wlAutoBox.addEventListener('change', ()=> localStorage.setItem('a1:wlAuto', JSON.stringify(!!wlAutoBox.checked)));
+  (function initAuto(){ wlAutoBox.checked = JSON.parse(localStorage.getItem('a1:wlAuto')||'false'); })();
+  setInterval(async ()=>{
+    if (!JSON.parse(localStorage.getItem('a1:wlAuto')||'false')) return;
+    const items = await wlList();
+    if (items.length) wlOffer(items[0].id);
+  }, 4000);
+
+  /* ---------- Global ---------- */
+  $('logoutBtn').onclick = ()=>{ localStorage.removeItem('adminSession'); location.href='./admin-login.html'; };
+
+  async function refreshAll(){
+    await Promise.all([renderOverview(), renderBookings(), renderSlots(), renderServices(), renderStylists(), renderSettings(), renderReports(), renderWaitlist()]);
+  }
+  refreshAll();
+</script>
+</body>
+</html>
